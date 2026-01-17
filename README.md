@@ -36,15 +36,19 @@ A Django-based authentication and management system for drivers, vehicles, and r
 
 5. Run migrations:
    ```
-   python manage.py migrate
+   1. python manage.py makemigration 
+   2. python manage.py migrate
    ```
-
-6. Create a superuser:
+6. Seeder :
+   ^^^^^^^^
+   python manage.py seed_admin 
+   ^^^^^^^^^
+7. Create a superuser:
    ```
    python manage.py createsuperuser
    ```
 
-7. Run the development server:
+8. Run the development server:
    ```
    python manage.py runserver
    ```
