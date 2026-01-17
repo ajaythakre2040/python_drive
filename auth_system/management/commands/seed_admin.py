@@ -6,26 +6,27 @@ from ...models import Role
 
 User = get_user_model()
 
-
 class Command(BaseCommand):
     help = "Seed Admin user with full profile from .env"
 
     def handle(self, *args, **kwargs):
 
-        admin_role, _ = Role.objects.get_or_create(
-            code="ADMIN",
-            defaults={
-                "name": "Admin",
-                "is_active": True,
-                "is_default": False
-            }
-        )
+        try:
+            admin_role = Role.objects.get(code="ADM")
+        except Role.DoesNotExist:
+            self.stdout.write(
+                self.style.ERROR("Admin role not found. Please run seed_roles first.")
+            )
+            return
 
         mobile = config("ADMIN_MOBILE")
 
         if User.objects.filter(primary_mobile_number=mobile).exists():
             self.stdout.write(self.style.WARNING("Admin already exists"))
             return
+
+        admin_email = config("ADMIN_EMAIL")
+        admin_password = config("ADMIN_PASSWORD")
 
         admin = User.objects.create(
             full_name=config("ADMIN_NAME"),
@@ -37,7 +38,7 @@ class Command(BaseCommand):
             ),
             secondary_whatsapp_mobile_number=False,
 
-            email_id=config("ADMIN_EMAIL"),
+            email_id=admin_email,
             gender=config("ADMIN_GENDER"),
             dob=config("ADMIN_DOB"),
 
@@ -60,7 +61,10 @@ class Command(BaseCommand):
             created_at=timezone.now(),
         )
 
-        admin.set_password(config("ADMIN_PASSWORD"))
+        admin.set_password(admin_password)
         admin.save()
 
-        self.stdout.write(self.style.SUCCESS("Admin user with address created successfully"))
+        # ✅ TERMINAL OUTPUT
+        self.stdout.write(self.style.SUCCESS("Admin user created successfully"))
+        self.stdout.write(self.style.NOTICE(f"Admin Email    : {admin_email}"))
+        self.stdout.write(self.style.NOTICE(f"Admin Password : {admin_password}"))
