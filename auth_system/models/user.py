@@ -15,11 +15,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     primary_mobile_number = models.CharField(max_length=15,unique=True,null=True,blank=True)
 
-    secondary_mobile_number = models.BooleanField(default=False)
+    secondary_mobile_number = models.BooleanField(max_length=15,unique=True,null=True,blank=True)
 
-    primary_whatsapp_mobile_number = models.CharField(max_length=15,unique=True,null=True,blank=True)
+    primary_whatsapp_mobile_number = models.CharField(default=False)
 
-    secondary_whatsapp_mobile_number = models.BooleanField(default=True)
+    secondary_whatsapp_mobile_number = models.BooleanField(default=False)
 
     email_id = models.EmailField(blank=True, null=True,unique=True)
 
