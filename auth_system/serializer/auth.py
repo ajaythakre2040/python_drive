@@ -8,6 +8,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     role = serializers.CharField(write_only=True, required=False)  
     primary_mobile_number = serializers.CharField(required=True)
 
+    is_primary_whatsapp = serializers.BooleanField(default=False)
+
+    is_secondary_whatsapp = serializers.BooleanField(default=False)
+
     class Meta:
         model = User
         fields = [
@@ -15,9 +19,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "role",
             "full_name",
             "primary_mobile_number",
-            "secondary_mobile_number",
-            "primary_whatsapp_mobile_number",
-            "secondary_whatsapp_mobile_number",
+            "is_primary_whatsapp",
+            "is_secondary_whatsapp",
             "password",
             "email_id",
             "gender",

@@ -6,73 +6,90 @@ from ...models import Role
 
 User = get_user_model()
 
+
 class Command(BaseCommand):
-    help = "Seed Admin user with full profile from .env"
+    help = "Seed Admin user (WhatsApp boolean only)"
 
     def handle(self, *args, **kwargs):
 
-        # Get Admin role with code = "ADM"
+        # Get Admin role
         try:
             admin_role = Role.objects.get(code="ADM")
         except Role.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR("Admin role not found. Please create role with code 'ADM' first.")
+                self.style.ERROR(
+                    "Admin role not found. Please create role with code 'ADM' first."
+                )
             )
             return
 
-        primary_mobile = config("ADMIN_PRIMARY_MOBILE")
+        # -------- Mobile Numbers --------
+        primary_mobile_number = config("ADMIN_PRIMARY_MOBILE_NUMBER")
 
-        # Check if admin already exists
-        if User.objects.filter(primary_mobile_number=primary_mobile).exists():
+        if User.objects.filter(primary_mobile_number=primary_mobile_number).exists():
             self.stdout.write(self.style.WARNING("Admin already exists"))
             return
 
-        # Fetch other values from .env
-        secondary_mobile = config("ADMIN_SECONDARY_MOBILE", default=None)
-        primary_whatsapp = config("ADMIN_PRIMARY_WHATSAPP", default=primary_mobile)
-        secondary_whatsapp = config("ADMIN_SECONDARY_WHATSAPP", default=None)
+        secondary_mobile_number = config(
+            "ADMIN_SECONDARY_MOBILE_NUMBER", default=None
+        )
 
+        # -------- WhatsApp BOOLEAN ONLY --------
+        is_primary_whatsapp = config(
+            "ADMIN_IS_PRIMARY_WHATSAPP", cast=bool, default=True
+        )
+        is_secondary_whatsapp = config(
+            "ADMIN_IS_SECONDARY_WHATSAPP", cast=bool, default=False
+        )
+
+        # -------- Other details --------
         admin_email = config("ADMIN_EMAIL")
         admin_password = config("ADMIN_PASSWORD")
+
+        latitude_val = config("ADMIN_LATITUDE", default=None)
+        longitude_val = config("ADMIN_LONGITUDE", default=None)
 
         admin = User.objects.create(
             full_name=config("ADMIN_NAME"),
 
-            primary_mobile_number=primary_mobile,
-            secondary_mobile_number=secondary_mobile,
+            primary_mobile_number=primary_mobile_number,
+            secondary_mobile_number=secondary_mobile_number,
 
-            primary_whatsapp_mobile_number=primary_whatsapp,
-            secondary_whatsapp_mobile_number=secondary_whatsapp,
+            # ✅ WhatsApp flags
+            is_primary_whatsapp=is_primary_whatsapp,
+            is_secondary_whatsapp=is_secondary_whatsapp,
 
             email_id=admin_email,
             gender=config("ADMIN_GENDER"),
             dob=config("ADMIN_DOB"),
 
             current_address=config(
-                "ADMIN_CURRENT_ADDRESS",
-                default="Head Office Address"
+                "ADMIN_CURRENT_ADDRESS", default="Head Office"
             ),
             permanent_address=config(
-                "ADMIN_PERMANENT_ADDRESS",
-                default="Permanent Address"
+                "ADMIN_PERMANENT_ADDRESS", default="Permanent Address"
             ),
 
-            latitude=config("ADMIN_LATITUDE", cast=float, default=None),
-            longitude=config("ADMIN_LONGITUDE", cast=float, default=None),
+            latitude=float(latitude_val) if latitude_val else None,
+            longitude=float(longitude_val) if longitude_val else None,
 
             role=admin_role,
             is_active=True,
             is_staff=True,
-
             created_at=timezone.now(),
         )
 
-        # Set password securely
         admin.set_password(admin_password)
         admin.save()
 
-        # ✅ Terminal output
+        # -------- Output --------
         self.stdout.write(self.style.SUCCESS("Admin user created successfully"))
-        self.stdout.write(self.style.NOTICE(f"Admin Mobile (Primary)   : {primary_mobile}"))
-        self.stdout.write(self.style.NOTICE(f"Admin Mobile (Secondary) : {secondary_mobile}"))
-        self.stdout.write(self.style.NOTICE(f"Admin Email              : {admin_email}"))
+        self.stdout.write(
+            self.style.NOTICE(f"Primary Mobile Number : {primary_mobile_number}")
+        )
+        self.stdout.write(
+            self.style.NOTICE(f"Admin Email          : {admin_email}")
+        )
+        self.stdout.write(
+            self.style.NOTICE(f"Admin Password       : {admin_password}")
+        )

@@ -17,7 +17,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"full_name\": \"madhvi Singh\",\r\n  \"password\":\"Madhvi#1234\",\r\n  \"primary_mobile_number\": \"9867123452\",\r\n  \"secondary_mobile_number\": \"9867123452\",\r\n  \"primary_whatsapp_mobile_number\": \"98671234502\",\r\n  \"secondary_whatsapp_mobile_number\": \"9867123452\",\r\n  \"email_id\": \"madhvi.singh@example.com\",\r\n  \"gender\": \"Female\",\r\n  \"dob\": \"1996-11-05\",\r\n  \"current_address\": \"Indirapuram, Ghaziabad, UP\",\r\n  \"permanent_address\": \"Patna, Bihar\"\r\n}\r\n",
+          "raw": "{\r\n  \"full_name\": \"Owner True\",\r\n  \"primary_mobile_number\": \"9900112244\",\r\n  \"secondary_mobile_number\": \"9900223355\", \r\n  \"email_id\": \"owner.true@example.com\",\r\n  \"password\": \"OwnerTrue123\",\r\n  \"gender\": \"Male\",\r\n  \"dob\": \"1980-07-10\",\r\n  \"current_address\": \"Owner Office True, City\",\r\n  \"permanent_address\": \"Owner Home True, City\",\r\n  \"latitude\": 28.5355,\r\n  \"longitude\": 77.3910\r\n}\r\n\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -25,7 +25,7 @@
           }
         },
         "url": {
-          "raw": "http://127.0.0.1:8000/api/driver/register/",
+          "raw": "http://127.0.0.1:8000/api/owner/register/",
           "protocol": "http",
           "host": [
             "127",
@@ -36,7 +36,7 @@
           "port": "8000",
           "path": [
             "api",
-            "driver",
+            "owner",
             "register",
             ""
           ]
