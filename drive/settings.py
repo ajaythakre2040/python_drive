@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-(mr^t(q7(ru56mf(ab#7dt8ri^_e87w3#q2g5%agkd52vs%!d(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '192.168.10.159',  
+]
 
 from decouple import config
 from datetime import timedelta
