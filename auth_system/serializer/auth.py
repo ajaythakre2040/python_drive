@@ -19,6 +19,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "role",
             "full_name",
             "primary_mobile_number",
+            "secondary_mobile_number",
             "is_primary_whatsapp",
             "is_secondary_whatsapp",
             "password",

@@ -17,7 +17,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"full_name\": \"Owner True\",\r\n  \"primary_mobile_number\": \"9900112244\",\r\n  \"secondary_mobile_number\": \"9900223355\", \r\n  \"email_id\": \"owner.true@example.com\",\r\n  \"password\": \"OwnerTrue123\",\r\n  \"gender\": \"Male\",\r\n  \"dob\": \"1980-07-10\",\r\n  \"current_address\": \"Owner Office True, City\",\r\n  \"permanent_address\": \"Owner Home True, City\",\r\n  \"latitude\": 28.5355,\r\n  \"longitude\": 77.3910\r\n}\r\n\r\n",
+          "raw": "{\r\n  \"full_name\": \"Ramesh bhagat\",\r\n  \"primary_mobile_number\": \"9900112234\",\r\n  \"secondary_mobile_number\": \"9900222355\",\r\n  \"is_primary_whatsapp\":\"True\",\r\n  \"is_secondary_whatsapp\":\"false\" ,\r\n  \"email_id\": \"Ramesh.true@example.com\",\r\n  \"password\": \"OwnerTrue123\",\r\n  \"gender\": \"Male\",\r\n  \"dob\": \"1980-07-10\",\r\n  \"current_address\": \"Owner Office True, City\",\r\n  \"permanent_address\": \"Owner Home True, City\",\r\n  \"latitude\": 28.5355,\r\n  \"longitude\": 77.3910\r\n}\r\n\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -967,6 +967,14 @@
             ""
           ]
         }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": []
       },
       "response": []
     }
