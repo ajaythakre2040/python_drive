@@ -28,6 +28,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "dob",
             "current_address",
             "permanent_address",
+            "longitude",
+            "latitude",
         ]
 
         def validate_old_password(self, value):
