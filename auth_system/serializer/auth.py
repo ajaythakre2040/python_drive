@@ -11,13 +11,19 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "primary_mobile_number",
-            "password",
+            "user_id",
+            "role",
             "full_name",
+            "primary_mobile_number",
+            "secondary_mobile_number",
+            "primary_whatsapp_mobile_number",
+            "secondary_whatsapp_mobile_number",
+            "password",
+            "email_id",
             "gender",
             "dob",
-            "email_id",
-            "role",
+            "current_address",
+            "permanent_address",
         ]
 
         def validate_old_password(self, value):
@@ -43,6 +49,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         user = User.all_objects.create_user(**validated_data, role=role, password=password)
         return user
+    
 class ChangePasswordSerializer(serializers.Serializer):
     user_id = serializers.CharField(required=True)
     old_password = serializers.CharField(write_only=True, required=True)
@@ -50,6 +57,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate_new_password(self, value):
         return validate_custom_password(value)
+    
 class ResetPasswordSerializer(serializers.Serializer):
     user_id = serializers.CharField(write_only=True, required=True)
     new_password = serializers.CharField(write_only=True, required=True)

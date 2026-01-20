@@ -11,32 +11,38 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
 
+        # Get Admin role with code = "ADM"
         try:
             admin_role = Role.objects.get(code="ADM")
         except Role.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR("Admin role not found. Please run seed_roles first.")
+                self.style.ERROR("Admin role not found. Please create role with code 'ADM' first.")
             )
             return
 
-        mobile = config("ADMIN_MOBILE")
+        primary_mobile = config("ADMIN_PRIMARY_MOBILE")
 
-        if User.objects.filter(primary_mobile_number=mobile).exists():
+        # Check if admin already exists
+        if User.objects.filter(primary_mobile_number=primary_mobile).exists():
             self.stdout.write(self.style.WARNING("Admin already exists"))
             return
+
+        # Fetch other values from .env
+        secondary_mobile = config("ADMIN_SECONDARY_MOBILE", default=None)
+        primary_whatsapp = config("ADMIN_PRIMARY_WHATSAPP", default=primary_mobile)
+        secondary_whatsapp = config("ADMIN_SECONDARY_WHATSAPP", default=None)
 
         admin_email = config("ADMIN_EMAIL")
         admin_password = config("ADMIN_PASSWORD")
 
         admin = User.objects.create(
             full_name=config("ADMIN_NAME"),
-            primary_mobile_number=mobile,
-            secondary_mobile_number=False,
 
-            primary_whatsapp_mobile_number=config(
-                "ADMIN_WHATSAPP", default=mobile
-            ),
-            secondary_whatsapp_mobile_number=False,
+            primary_mobile_number=primary_mobile,
+            secondary_mobile_number=secondary_mobile,
+
+            primary_whatsapp_mobile_number=primary_whatsapp,
+            secondary_whatsapp_mobile_number=secondary_whatsapp,
 
             email_id=admin_email,
             gender=config("ADMIN_GENDER"),
@@ -51,8 +57,8 @@ class Command(BaseCommand):
                 default="Permanent Address"
             ),
 
-            latitude=config("ADMIN_LATITUDE", default=None),
-            longitude=config("ADMIN_LONGITUDE", default=None),
+            latitude=config("ADMIN_LATITUDE", cast=float, default=None),
+            longitude=config("ADMIN_LONGITUDE", cast=float, default=None),
 
             role=admin_role,
             is_active=True,
@@ -61,10 +67,12 @@ class Command(BaseCommand):
             created_at=timezone.now(),
         )
 
+        # Set password securely
         admin.set_password(admin_password)
         admin.save()
 
-        # ✅ TERMINAL OUTPUT
+        # ✅ Terminal output
         self.stdout.write(self.style.SUCCESS("Admin user created successfully"))
-        self.stdout.write(self.style.NOTICE(f"Admin Email    : {admin_email}"))
-        self.stdout.write(self.style.NOTICE(f"Admin Password : {admin_password}"))
+        self.stdout.write(self.style.NOTICE(f"Admin Mobile (Primary)   : {primary_mobile}"))
+        self.stdout.write(self.style.NOTICE(f"Admin Mobile (Secondary) : {secondary_mobile}"))
+        self.stdout.write(self.style.NOTICE(f"Admin Email              : {admin_email}"))
