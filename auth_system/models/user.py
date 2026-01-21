@@ -31,9 +31,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     permanent_address = models.TextField(blank=True, null=True)
 
-    latitude = models.DecimalField(max_digits=9,decimal_places=6,blank=True,null=True)
+    latitude = models.DecimalField(max_digits=10,decimal_places=7,blank=True,null=True)
 
-    longitude = models.DecimalField(max_digits=9,decimal_places=6,blank=True,null=True)
+    longitude = models.DecimalField(max_digits=10,decimal_places=7,blank=True,null=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
