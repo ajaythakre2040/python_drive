@@ -52,24 +52,40 @@ class LoginAPIView(APIView):
     authentication_classes = []
 
     def post(self, request, role_name):
-        user_id = request.data.get("user_id")     
         mobile = request.data.get("primary_mobile_number")
         password = request.data.get("password")
 
-        if not user_id or not mobile or not password:
-            return Response({"success": False, "message": "user_id, mobile and password required"},status=status.HTTP_400_BAD_REQUEST)
+        if not mobile or not password:
+            return Response(
+                {"success": False, "message": "mobile and password required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        user = User.all_objects.filter(user_id=user_id, primary_mobile_number=mobile, is_active=True).first()
+        user = User.all_objects.filter(
+            primary_mobile_number=mobile,
+            is_active=True
+        ).first()
+
         if not user:
-            return Response({"success": False, "message": "User not found"}, status=404)
+            return Response(
+                {"success": False, "message": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         if not user.check_password(password):
-            return Response({"success": False, "message": "Incorrect password"}, status=400)
+            return Response(
+                {"success": False, "message": "Incorrect password"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         role_name = role_name.strip().lower()
         role = Role.objects.filter(name__iexact=role_name, is_active=True).first()
+
         if not role or user.role_id != role.id:
-            return Response({"success": False, "message": f"User is not assigned to role '{role_name}'"}, status=403)
+            return Response(
+                {"success": False, "message": f"User is not assigned to role '{role_name}'"},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         tokens = login_user(user)
 
@@ -77,13 +93,13 @@ class LoginAPIView(APIView):
             "success": True,
             "message": "Login successful",
             "data": {
-                "user_id": user.user_id, 
                 "primary_mobile_number": user.primary_mobile_number,
                 "role": user.role.code,
                 "access_token": tokens["access"],
                 "refresh_token": tokens["refresh"],
             }
-        }, status=200)
+        }, status=status.HTTP_200_OK)
+
 
 
 # =========================================== LOGOUT ============================================ #
