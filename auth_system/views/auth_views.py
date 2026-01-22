@@ -9,6 +9,7 @@ from auth_system.utils import login_user
 from auth_system.utils.generate_id import generate_user_id
 from auth_system.utils.password import is_password_reused
 from ..permission.authentication import LoginTokenAuthentication
+from django.db.models import Q
 
 # ============================================ REGISTER ========================================== #
 class RegisterAPIView(APIView):
@@ -53,16 +54,28 @@ class LoginAPIView(APIView):
 
     def post(self, request, role_name):
         mobile = request.data.get("primary_mobile_number")
+        email = request.data.get("email_id")
         password = request.data.get("password")
 
-        if not mobile or not password:
+        if not password:
             return Response(
-                {"success": False, "message": "mobile and password required"},
+                {"success": False, "message": "password required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if not mobile and not email:
+            return Response(
+                {
+                    "success": False,
+                    "message": "primary_mobile_number or email_id required"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 🔹 Login via Mobile OR Email
         user = User.all_objects.filter(
-            primary_mobile_number=mobile,
+            Q(primary_mobile_number=mobile) |
+            Q(email_id__iexact=email),
             is_active=True
         ).first()
 
@@ -83,7 +96,10 @@ class LoginAPIView(APIView):
 
         if not role or user.role_id != role.id:
             return Response(
-                {"success": False, "message": f"User is not assigned to role '{role_name}'"},
+                {
+                    "success": False,
+                    "message": f"User is not assigned to role '{role_name}'"
+                },
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -93,13 +109,14 @@ class LoginAPIView(APIView):
             "success": True,
             "message": "Login successful",
             "data": {
+                "user_id": user.user_id,
                 "primary_mobile_number": user.primary_mobile_number,
-                "role": user.role.code,
+                "email_id": user.email_id,
+                "role": user.role.code if user.role else None,
                 "access_token": tokens["access"],
                 "refresh_token": tokens["refresh"],
             }
         }, status=status.HTTP_200_OK)
-
 
 
 # =========================================== LOGOUT ============================================ #
