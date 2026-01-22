@@ -69,13 +69,5 @@ class ResetPasswordSerializer(serializers.Serializer):
     email_id = serializers.EmailField(write_only=True, required=False, allow_blank=True)
     new_password = serializers.CharField(write_only=True, required=True)
 
-    def validate(self, attrs):
-        mobile = attrs.get("primary_mobile_number")
-        email = attrs.get("email_id")
-
-        if not mobile and not email:
-            raise serializers.ValidationError("Either primary_mobile_number or email_id must be provided.")
-        return attrs
-
     def validate_new_password(self, value):
         return validate_custom_password(value)
