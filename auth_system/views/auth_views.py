@@ -160,7 +160,6 @@ class ResetPasswordAPIView(APIView):
         # Get mobile number or email from request
         mobile = serializer.validated_data.get("primary_mobile_number")
         email = serializer.validated_data.get("email_id")
-        new_password = serializer.validated_data["new_password"]
 
         if not mobile and not email:
             return Response(
@@ -173,17 +172,3 @@ class ResetPasswordAPIView(APIView):
         except User.DoesNotExist:
             return Response({"success": False, "message": "User not found"}, status=404)
 
-        # Check if password was reused
-        if is_password_reused(user, new_password):
-            return Response({"success": False, "message": "Cannot reuse last 3 passwords"}, status=400)
-
-        # Save old password to history
-        Password_History.objects.create(user=user, password=user.password)
-        user.set_password(new_password)
-        user.save()
-       
-        # Keep last 3 passwords only
-        old_password_ids = Password_History.objects.filter(user=user).order_by('-id')[3:].values_list('id', flat=True)
-        Password_History.objects.filter(id__in=old_password_ids).delete()
-
-        return Response({"success": True, "message": "Password reset successfully"}, status=200)
