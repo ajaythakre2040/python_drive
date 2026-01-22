@@ -58,38 +58,18 @@ class LoginAPIView(APIView):
         password = request.data.get("password")
 
         if not password:
-            return Response(
-                {"success": False, "message": "password required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"success": False, "message": "password required"},status=status.HTTP_400_BAD_REQUEST)
 
         if not mobile and not email:
-            return Response(
-                {
-                    "success": False,
-                    "message": "primary_mobile_number or email_id required"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 🔹 Login via Mobile OR Email
-        user = User.all_objects.filter(
-            Q(primary_mobile_number=mobile) |
-            Q(email_id__iexact=email),
-            is_active=True
-        ).first()
+            return Response({"success": False,"message": "primary_mobile_number or email_id required"},status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.all_objects.filter(Q(primary_mobile_number=mobile) |Q(email_id__iexact=email),is_active=True).first()
 
         if not user:
-            return Response(
-                {"success": False, "message": "User not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"success": False, "message": "User not found"},status=status.HTTP_404_NOT_FOUND)
 
         if not user.check_password(password):
-            return Response(
-                {"success": False, "message": "Incorrect password"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"success": False, "message": "Incorrect password"},status=status.HTTP_400_BAD_REQUEST)
 
         role_name = role_name.strip().lower()
         role = Role.objects.filter(name__iexact=role_name, is_active=True).first()
@@ -124,16 +104,11 @@ class LogoutAPIView(APIView):
     authentication_classes = [LoginTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        user_id = request.data.get("user_id")        
+    def post(self, request):   
         refresh_token = request.data.get("refresh_token")
 
-        if not user_id or not refresh_token:
-            return Response({"success": False, "message": "user_id and refresh_token required"}, status=400)
-
-        # Check string user_id
-        if request.user.user_id != user_id:
-            return Response({"success": False, "message": "Unauthorized user_id"}, status=403)
+        if not refresh_token:
+            return Response({"success": False, "message":" refresh_token required"}, status=400)
 
         try:
             token = RefreshToken(refresh_token)
