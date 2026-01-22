@@ -151,13 +151,12 @@ class ChangePasswordAPIView(APIView):
 # ================================================ RESET PASSWORD =============================================== #
 class ResetPasswordAPIView(APIView):
     authentication_classes = [LoginTokenAuthentication]
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get mobile number or email from request
         mobile = serializer.validated_data.get("primary_mobile_number")
         email = serializer.validated_data.get("email_id")
 
@@ -168,7 +167,21 @@ class ResetPasswordAPIView(APIView):
             )
 
         try:
-            user = User.all_objects.get(Q(primary_mobile_number=mobile) | Q(email_id=email),is_active=True)
+            user = User.all_objects.get(
+                Q(primary_mobile_number=mobile) | Q(email_id=email),
+                is_active=True
+            )
         except User.DoesNotExist:
-            return Response({"success": False, "message": "User not found"}, status=404)
+            return Response(
+                {"success": False, "message": "User not found"},
+                status=404
+            )
+
+        return Response(
+            {
+                "success": True,
+                "message": "User found, reset password process started"
+            },
+            status=200
+        )
 
