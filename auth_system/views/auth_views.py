@@ -150,8 +150,8 @@ class ChangePasswordAPIView(APIView):
 
 # ================================================ RESET PASSWORD =============================================== #
 class ResetPasswordAPIView(APIView):
-    authentication_classes = [LoginTokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)

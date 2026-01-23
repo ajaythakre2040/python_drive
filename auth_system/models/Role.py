@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 class Role(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -25,3 +26,9 @@ class Role(models.Model):
 
     def __str__(self):
         return self.name
+        
+    def delete(self, *args, **kwargs):
+        self.is_active = False
+        self.deleted_at = timezone.now()
+        self.save()
+        

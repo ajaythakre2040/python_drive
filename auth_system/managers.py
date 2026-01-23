@@ -7,10 +7,7 @@ class UserManager(BaseUserManager):
         if not primary_mobile_number:
             raise ValueError("Primary mobile number is required")
 
-        user = self.model(
-            primary_mobile_number=primary_mobile_number,
-            **extra_fields
-        )
+        user = self.model(primary_mobile_number=primary_mobile_number,**extra_fields)
 
         user.set_password(password)
         user.save(using=self._db)
@@ -21,7 +18,8 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(primary_mobile_number, password, **extra_fields)
 
-
-class ActiveUserManager(BaseUserManager):
+class ActiveUserManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(deleted_at__isnull=True)
+        return super().get_queryset().filter(
+            deleted_at__isnull=True
+        )

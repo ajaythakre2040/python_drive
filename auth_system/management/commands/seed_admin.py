@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from decouple import config
 from ...models import Role
+from ...utils import generate_id
 
 User = get_user_model()
 
@@ -50,12 +51,12 @@ class Command(BaseCommand):
         longitude_val = config("ADMIN_LONGITUDE", default=None)
 
         admin = User.objects.create(
+            user_id = generate_id(admin_role),
             full_name=config("ADMIN_NAME"),
 
             primary_mobile_number=primary_mobile_number,
             secondary_mobile_number=secondary_mobile_number,
 
-            # ✅ WhatsApp flags
             is_primary_whatsapp=is_primary_whatsapp,
             is_secondary_whatsapp=is_secondary_whatsapp,
 
