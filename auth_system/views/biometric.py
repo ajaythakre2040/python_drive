@@ -59,26 +59,6 @@ class UserSecurityAPIView(APIView):
             security.mpin_hash = make_password(mpin)
             security.is_mpin_enabled = True
 
-        # ===== Fingerprint =====
-        fingerprint = request.data.get("fingerprint")
-        if fingerprint:
-            try:
-                fingerprint = no_html_validator(fingerprint)
-            except Exception as e:
-                return Response({"status": False, "message": str(e)}, status=400)
-            security.fingerprint = make_password(fingerprint)
-            security.is_fingerprint_enabled = True
-
-        # ===== Face Lock =====
-        face_device_id = request.data.get("face_device_id")
-        if face_device_id:
-            try:
-                face_device_id = no_html_validator(face_device_id)
-            except Exception as e:
-                return Response({"status": False, "message": str(e)}, status=400)
-            security.faceLock = make_password(face_device_id)
-            security.is_face_lock_enabled = True
-
         security.save()
         return Response({"status": True, "message": "User security saved successfully"}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
@@ -111,18 +91,6 @@ class UserSecurityAPIView(APIView):
             security.is_mpin_enabled = bool(request.data["is_mpin_enabled"])
             if not security.is_mpin_enabled:
                 security.mpin_hash = None
-
-        # ===== Fingerprint ENABLE / DISABLE =====
-        if "is_fingerprint_enabled" in request.data:
-            security.is_fingerprint_enabled = bool(request.data["is_fingerprint_enabled"])
-            if not security.is_fingerprint_enabled:
-                security.fingerprint = None
-
-        # ===== Face Lock ENABLE / DISABLE =====
-        if "is_face_lock_enabled" in request.data:
-            security.is_face_lock_enabled = bool(request.data["is_face_lock_enabled"])
-            if not security.is_face_lock_enabled:
-                security.faceLock = None
 
         security.updated_by = request.user
         security.save()

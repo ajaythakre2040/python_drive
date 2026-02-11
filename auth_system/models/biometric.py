@@ -8,14 +8,6 @@ class User_security(models.Model):
     mpin_hash = models.CharField(max_length=128, blank=True, null=True)
     is_mpin_enabled = models.BooleanField(default=True)
 
-    # ===== Fingerprint =====
-    is_fingerprint_enabled = models.BooleanField(default=True)
-    fingerprint = models.CharField(blank=True, null=True)
-
-    # ===== Face Lock =====
-    is_face_lock_enabled = models.BooleanField(default=True)
-    faceLock = models.CharField(blank=True, null=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL,null=True,blank=True,on_delete=models.SET_NULL, related_name='created_usersecurities')
 
