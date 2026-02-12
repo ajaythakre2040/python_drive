@@ -105,27 +105,31 @@ class LoginAPIView(APIView):
             }
         )
 
-        # ===== Reset all login flags =====
-        security.is_mpin_enabled = False
-        security.is_fingerprint_enabled = False
-        security.is_face_lock_enabled = False
-
         # ===== Check login method =====
+        login_method = None
+
         if password:
             if not user.check_password(password):
                 return Response({"success": False, "message": "Incorrect password"}, status=status.HTTP_400_BAD_REQUEST)
-            # Password login successful; no flag changes
+            login_method = "password"
 
         elif mpin:
             if not security.check_mpin(mpin):
                 return Response({"success": False, "message": "Incorrect MPIN"}, status=status.HTTP_400_BAD_REQUEST)
-            security.is_mpin_enabled = True
-
+            login_method = "mpin"
+        
         elif fingerprint:
+            if not security.is_fingerprint_enabled:
+                return Response(
+                    {"success": False, "message": "Fingerprint login disabled for this user."},status=status.HTTP_400_BAD_REQUEST)
             security.is_fingerprint_enabled = True
+            login_method = "fingerprint"
 
         elif facelock:
+            if not security.is_face_lock_enabled:
+                return Response({"success": False, "message": "FaceLock login disabled for this user."},status=status.HTTP_400_BAD_REQUEST)
             security.is_face_lock_enabled = True
+            login_method = "facelock"
 
         security.save()
 
@@ -152,10 +156,9 @@ class LoginAPIView(APIView):
                     "email_id": user.email_id,
                     "role": user.role.code if user.role else None,
                     "login_methods": {
-                        "mpin": security.is_mpin_enabled,
-                        "fingerprint": security.is_fingerprint_enabled,
-                        "facelock": security.is_face_lock_enabled
-                    },
+                    "mpin": login_method == "mpin",
+                    "fingerprint": login_method == "fingerprint",
+                     "facelock": login_method == "facelock"},
                     "access_token": tokens["access"],
                     "refresh_token": tokens["refresh"],
                 }
