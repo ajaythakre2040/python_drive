@@ -1,11 +1,12 @@
+from urllib import response
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from auth_system.models import User, Role, Password_History
+from auth_system.models import User, Role, Password_History,User_security
 from auth_system.serializer.auth import (UserRegisterSerializer,ChangePasswordSerializer,ResetPasswordSerializer)
-from auth_system.utils import login_user
+from auth_system.utils.token_generate import token_generate
 from auth_system.utils.generate_id import generate_user_id
 from auth_system.utils.password import is_password_reused
 from ..permission.authentication import LoginTokenAuthentication
@@ -35,7 +36,7 @@ class RegisterAPIView(APIView):
         user.user_id = generate_user_id(role)
         user.save(update_fields=["user_id"])
 
-        tokens = login_user(user)
+        tokens = token_generate(user)
 
         return Response({
             "success": True,
@@ -53,52 +54,114 @@ class LoginAPIView(APIView):
     authentication_classes = []
 
     def post(self, request, role_name):
-        mobile = request.data.get("primary_mobile_number")
-        email = request.data.get("email_id")
-        password = request.data.get("password")
+        data = request.data
+        mobile = data.get("primary_mobile_number")
+        email = data.get("email_id")
+        password = data.get("password")
+        mpin = data.get("mpin")
+        fingerprint = data.get("fingerprint")
+        facelock = data.get("facelock")
+        user_id = data.get("user_id") 
 
-        if not password:
-            return Response({"success": False, "message": "password required"},status=status.HTTP_400_BAD_REQUEST)
+        # ===== Validate at least one login method =====
+        if not (password or mpin or fingerprint or facelock):
+            return Response(
+                {"success": False, "message": "At least one login method (password, MPIN, fingerprint, facelock) is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if not mobile and not email:
-            return Response({"success": False,"message": "primary_mobile_number or email_id required"},status=status.HTTP_400_BAD_REQUEST)
-        
-        user = User.all_objects.filter(Q(primary_mobile_number=mobile) |Q(email_id__iexact=email),is_active=True).first()
+        # ===== Password login requires mobile/email =====
+        if password and not (mobile or email):
+            return Response(
+                {"success": False, "message": "primary_mobile_number or email_id is required for password login."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ===== Fetch user =====
+        user = None
+        if password:
+            user = User.all_objects.filter(Q(primary_mobile_number=mobile) | Q(email_id__iexact=email), is_active=True).first()
+        elif mpin or fingerprint or facelock:
+            if user_id:
+                user = User.all_objects.filter(user_id=user_id, is_active=True).first()
+            elif mobile or email:
+                user = User.all_objects.filter(Q(primary_mobile_number=mobile) | Q(email_id__iexact=email), is_active=True).first()
+            else:
+                return Response(
+                    {"success": False, "message": "user_id, email, or primary_mobile_number required for MPIN/fingerprint/facelock login."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if not user:
-            return Response({"success": False, "message": "User not found"},status=status.HTTP_404_NOT_FOUND)
+            return Response({"success": False, "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if not user.check_password(password):
-            return Response({"success": False, "message": "Incorrect password"},status=status.HTTP_400_BAD_REQUEST)
+        # ===== Fetch or create User_security =====
+        security, _ = User_security.objects.get_or_create(
+            user=user,
+            defaults={
+                "is_mpin_enabled": True,
+                "is_fingerprint_enabled": True,
+                "is_face_lock_enabled": True,
+            }
+        )
 
-        role_name = role_name.strip().lower()
-        role = Role.objects.filter(name__iexact=role_name, is_active=True).first()
+        # ===== Reset all login flags =====
+        security.is_mpin_enabled = False
+        security.is_fingerprint_enabled = False
+        security.is_face_lock_enabled = False
 
+        # ===== Check login method =====
+        if password:
+            if not user.check_password(password):
+                return Response({"success": False, "message": "Incorrect password"}, status=status.HTTP_400_BAD_REQUEST)
+            # Password login successful; no flag changes
+
+        elif mpin:
+            if not security.check_mpin(mpin):
+                return Response({"success": False, "message": "Incorrect MPIN"}, status=status.HTTP_400_BAD_REQUEST)
+            security.is_mpin_enabled = True
+
+        elif fingerprint:
+            security.is_fingerprint_enabled = True
+
+        elif facelock:
+            security.is_face_lock_enabled = True
+
+        security.save()
+
+        # ===== Role check =====
+        role_name_clean = role_name.strip().lower()
+        role = Role.objects.filter(name__iexact=role_name_clean, is_active=True).first()
         if not role or user.role_id != role.id:
             return Response(
-                {
-                    "success": False,
-                    "message": f"User is not assigned to role '{role_name}'"
-                },
+                {"success": False, "message": f"User is not assigned to role '{role_name}'"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        tokens = login_user(user)
+        # ===== Generate tokens =====
+        tokens = token_generate(user)
 
-        return Response({
-            "success": True,
-            "message": "Login successful",
-            "data": {
-                "user_id": user.user_id,
-                "primary_mobile_number": user.primary_mobile_number,
-                "email_id": user.email_id,
-                "role": user.role.code if user.role else None,
-                "access_token": tokens["access"],
-                "refresh_token": tokens["refresh"],
-            }
-        }, status=status.HTTP_200_OK)
-
-
+        # ===== Return response =====
+        return Response(
+            {
+                "success": True,
+                "message": "Login successful",
+                "data": {
+                    "user_id": user.user_id,
+                    "primary_mobile_number": user.primary_mobile_number,
+                    "email_id": user.email_id,
+                    "role": user.role.code if user.role else None,
+                    "login_methods": {
+                        "mpin": security.is_mpin_enabled,
+                        "fingerprint": security.is_fingerprint_enabled,
+                        "facelock": security.is_face_lock_enabled
+                    },
+                    "access_token": tokens["access"],
+                    "refresh_token": tokens["refresh"],
+                }
+            },
+            status=status.HTTP_200_OK
+        )
 # =========================================== LOGOUT ============================================ #
 class LogoutAPIView(APIView):
     authentication_classes = [LoginTokenAuthentication]

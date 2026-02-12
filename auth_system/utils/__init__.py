@@ -1,6 +1,6 @@
 from .validators import validate_custom_password
 from .generate_id import generate_user_id
-from .login_session import login_user
+from .token_generate import token_generate
 from .OTP import generate_otp
 from .email import send_email_otp
 from .sms import send_sms

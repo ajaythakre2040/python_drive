@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 from auth_system.models import Login_Logout_History
 
-def login_user(user):
+def token_generate(user):
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
 
