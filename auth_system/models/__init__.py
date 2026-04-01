@@ -7,3 +7,5 @@ from .OTPVerification import OTP_verification
 from.password_history import Password_History
 from .vehicle import Vehicle
 from .driver import Driver_Document
+from .change_reset_password import Password_Action_Log
+from .mpin_history import UserMPINHistory

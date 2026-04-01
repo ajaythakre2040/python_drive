@@ -16,14 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from auth_system.browser_views.index import home
+from auth_system.browser_views.test import test_view
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/',include('auth_system.urls')),
+    path('test/', test_view),  
+    path("", home, name="home"),
 ]
-
-from django.conf import settings
-from django.conf.urls.static import static
 
 # keep existing urlpatterns declared above
 if settings.DEBUG:

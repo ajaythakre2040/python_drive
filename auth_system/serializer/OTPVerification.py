@@ -13,6 +13,7 @@ class SendOTPSerializer(serializers.Serializer):
 
         if otp_type == "mobile" and not mobile_number:
             raise serializers.ValidationError({"mobile_number": "Mobile number is required for mobile OTP"})
+        
         if otp_type == "email" and not email:
             raise serializers.ValidationError({"email": "Email is required for email OTP"})
         return data

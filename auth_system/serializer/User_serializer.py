@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from auth_system.models import User, Role
-from ..utils.validators import validate_custom_password
-
+from ..utils.password_validation import validate_custom_password
 
 class UserSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(read_only=True)
@@ -11,18 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = [
-            "user_id",
-            "full_name",
-            "primary_mobile_number",
-            "password",
-            "role",
-            "email_id",
-            "gender",
-            "dob",
-            "current_address",
-            "permanent_address",
-        ]
+        fields = "__all__"
         read_only_fields = ["user_id"]
 
     def validate_password(self, value):

@@ -4,3 +4,4 @@ from .biometric import UserSecuritySerializer
 from .OTPVerification import SendOTPSerializer,VerifyOTPSerializer,RESENDOTPSerializer
 from .driver import DriverDocumentSerializer
 from .vehicles import VehicleSerializer
+from .unblock_user import UnblockUserSerializer

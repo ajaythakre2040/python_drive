@@ -5,9 +5,10 @@ http://127.0.0.1:8000/api/
 #==================================Authentication==================================#
 
 POST                   role_name/register/                         → for Registration
-example:- role_name= driver,owner
+example:- role_name = driver,owner
 POST                  role_name/login/                             → for Login
 POST                          /logout/                             → for Logout 
+POST                         /force-logout/                        →  for force-logout
 POST                     /change-password/                         → for Change passoword
 POST                    /reset-password/                           → for Reset password
 
@@ -40,3 +41,8 @@ DELETE          /userdocuments/{user_id}/                 → for delete documen
 POST             /otp/send/                               → SEND OTP (MOBILE/EMAIL)
 POST            /otp/verify/                              →  VERIFY OTP (MOBILE/EMAIL)
 POST           /otp/resend/                               → RESEND OTP (MOBILE/EMAIL)
+
+#======================================USER UNBLOCK ===================================#
+
+POST           /unblock-user/                              → Unblock user
+

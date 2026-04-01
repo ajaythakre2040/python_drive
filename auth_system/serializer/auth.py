@@ -1,69 +1,118 @@
 from rest_framework import serializers
-from auth_system.models import User, Role
-from auth_system.utils.validators import validate_custom_password
+from auth_system.models import User
+from auth_system.utils.password_validation import validate_custom_password
 from ..utils.sanitize import no_html_validator
+from ..utils.email_validations import check_email
+from ..utils.register_validation import validate_full_name, validate_dob, validate_mobile_number
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
-    role = serializers.CharField(write_only=True, required=False)  
     primary_mobile_number = serializers.CharField(required=True)
-
-    is_primary_whatsapp = serializers.BooleanField(default=False)
-
-    is_secondary_whatsapp = serializers.BooleanField(default=False)
+    secondary_mobile_number = serializers.CharField(required=False, allow_blank=True)
+    email_id = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = User
-        fields = [
-            "user_id",
-            "role",
-            "full_name",
-            "primary_mobile_number",
-            "secondary_mobile_number",
-            "is_primary_whatsapp",
-            "is_secondary_whatsapp",
-            "password",
-            "email_id",
-            "gender",
-            "dob",
-            "current_address",
-            "permanent_address",
-            "longitude",
-            "latitude",
-        ]
+        fields = "__all__"
 
-        def validate_old_password(self, value):
-            return value.strip()
+    # =========================
+    # 🔹 COMMON UNIQUE CHECK
+    # =========================
+    def _check_unique(self, field, value, role, message):
+        if value and role:
+            if User.all_objects.filter(**{field: value, "role": role}).exists():
+                raise serializers.ValidationError(message)
 
-    def validate_role(self, value):
-        role_code = value.upper()
-        role = Role.objects.filter(code=role_code, is_active=True).first()
-        if not role:
-            raise serializers.ValidationError(f"Role '{value}' is invalid or inactive")
-        return role
+    # =========================
+    # 🔹 FIELD VALIDATIONS
+    # =========================
+
+    def validate_full_name(self, value):
+        value = no_html_validator(value)
+        return validate_full_name(value)
 
     def validate_primary_mobile_number(self, value):
-        value = no_html_validator(value)
-        if len(value) != 10 or not value.isdigit():
-            raise serializers.ValidationError("Mobile number must be 10 digits")
-        if User.objects.filter(primary_mobile_number=value).exists():
-            raise serializers.ValidationError("Mobile number already registered")
+        value = validate_mobile_number(value)
+        role = self.context.get("role")
+
+        self._check_unique(
+            "primary_mobile_number",
+            value,
+            role,
+            "Mobile number already registered for this role"
+        )
         return value
 
+    def validate_secondary_mobile_number(self, value):
+        if value:
+            return validate_mobile_number(value)
+        return value
+
+    def validate_email_id(self, value):
+        if not value:
+            return None
+
+        value = no_html_validator(value)
+        value = check_email(value)
+
+        role = self.context.get("role")
+
+        self._check_unique(
+            "email_id",
+            value,
+            role,
+            "Email already registered for this role"
+        )
+        return value
+
+    def validate_dob(self, value):
+        return validate_dob(value)
+
+    def validate_password(self, value):
+        validate_custom_password(value)
+        return value
+
+    # =========================
+    # 🔹 CROSS FIELD VALIDATION
+    # =========================
+    def validate(self, data):
+        primary = data.get("primary_mobile_number")
+        secondary = data.get("secondary_mobile_number")
+
+        if primary and secondary and primary == secondary:
+            raise serializers.ValidationError({
+                "secondary_mobile_number": "Primary and Secondary mobile cannot be same."
+            })
+
+        return data
+
+    # =========================
+    # 🔹 CREATE USER
+    # =========================
     def create(self, validated_data):
-        role = validated_data.pop("role", None)
+        role = self.context.get("role")
         password = validated_data.pop("password")
-        user = User.all_objects.create_user(**validated_data, role=role, password=password)
+
+        # Force role from context (security)
+        validated_data.pop("role", None)
+
+        user = User.all_objects.create_user(
+            **validated_data,
+            role=role,
+            password=password
+        )
+
         return user
-    
+#=========================================Change password=====================================#
 class ChangePasswordSerializer(serializers.Serializer):
-    user_id = serializers.CharField(required=True)
     old_password = serializers.CharField(write_only=True, required=True)
     new_password = serializers.CharField(write_only=True, required=True)
 
     def validate_new_password(self, value):
-        return validate_custom_password(value)
+        validate_custom_password(value)
+        return value
 
+#=========================================Reset password=====================================#
 class ResetPasswordSerializer(serializers.Serializer):
     primary_mobile_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
     email_id = serializers.EmailField(required=False, allow_blank=True, write_only=True)

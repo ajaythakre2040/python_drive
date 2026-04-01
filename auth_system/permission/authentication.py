@@ -35,4 +35,12 @@ class LoginTokenAuthentication(BaseAuthentication):
         if session.expires_at and session.expires_at < timezone.now():
             raise AuthenticationFailed("Session expired")
 
+        request_ua = request.META.get("HTTP_USER_AGENT", "")
+        if session.user_agent and session.user_agent != request_ua:
+            raise AuthenticationFailed("Token cannot be used in a different browser/device")
+
+        request_ip = request.META.get("REMOTE_ADDR")
+        if session.ip_address and session.ip_address != request_ip:
+            raise AuthenticationFailed("Token cannot be used from a different IP")
+        
         return (jwt_user, validated_token)  

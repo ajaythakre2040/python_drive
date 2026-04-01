@@ -7,7 +7,7 @@ from auth_system.models import OTP_verification
 from ..serializer import SendOTPSerializer, VerifyOTPSerializer, RESENDOTPSerializer
 from auth_system.utils.OTP import generate_otp, hash_otp, otp_expiry
 from auth_system.utils.sms import send_sms
-from auth_system.utils.email import send_email_otp
+from auth_system.utils.email_otp import send_email_otp
 
 MAX_OTP_ATTEMPTS = 3
 

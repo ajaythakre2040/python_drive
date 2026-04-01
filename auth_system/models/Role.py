@@ -5,7 +5,7 @@ from django.utils import timezone
 class Role(models.Model):
     id = models.BigAutoField(primary_key=True)
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=250)
     code = models.CharField(max_length=30, unique=True, default='ROLE_DEFAULT')
 
     is_default = models.BooleanField(default=False)

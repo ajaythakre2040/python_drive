@@ -4,7 +4,6 @@ from ..models import User_Documents
 class DocumentUploadSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(source='user.user_id',read_only=True)
 
-
     class Meta:
         model = User_Documents
         fields = "__all__"

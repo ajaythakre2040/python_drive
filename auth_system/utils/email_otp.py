@@ -4,7 +4,6 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-
 def send_email_otp(email: str, otp: str) -> bool:
     subject = "YOUR OTP VERIFICATION CODE"
     message = f"Your OTP is {otp}. It is valid for 5 minutes."
@@ -23,3 +22,4 @@ def send_email_otp(email: str, otp: str) -> bool:
     except Exception:
         logger.exception("Failed to send OTP email to %s", email)
         return False    
+    

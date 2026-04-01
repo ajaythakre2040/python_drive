@@ -8,5 +8,5 @@ class DriverDocumentSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = (
             "driver", "is_verified", "created_by", "updated_by", "deleted_by",
-            "created_at", "updated_at", "deleted_at"
+            "created_at", "updated_at", "deleted_at",
         )

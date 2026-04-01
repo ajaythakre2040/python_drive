@@ -11,7 +11,7 @@ class OTP_verification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     status = models.CharField(max_length=20,choices=OTPStatus.CHOICES,default=OTPStatus.SENT)
     otp_type = models.CharField(max_length=10, choices=OTP_TYPE_CHOICES)
-    mobile = models.CharField(max_length=15, null=True, blank=True)
+    mobile = models.CharField(max_length=10, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
 
     otp_hash = models.CharField(max_length=128)
