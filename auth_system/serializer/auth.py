@@ -5,6 +5,7 @@ from ..utils.sanitize import no_html_validator
 from ..utils.email_validations import check_email
 from ..utils.register_validation import validate_full_name, validate_dob, validate_mobile_number
 
+#================================ Register============================#
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
     primary_mobile_number = serializers.CharField(required=True)
@@ -35,12 +36,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         value = validate_mobile_number(value)
         role = self.context.get("role")
 
-        self._check_unique(
-            "primary_mobile_number",
-            value,
-            role,
-            "Mobile number already registered for this role"
-        )
+        self._check_unique("primary_mobile_number", value,role,"Mobile number already registered for this role")
         return value
 
     def validate_secondary_mobile_number(self, value):
@@ -57,12 +53,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
         role = self.context.get("role")
 
-        self._check_unique(
-            "email_id",
-            value,
-            role,
-            "Email already registered for this role"
-        )
+        self._check_unique("email_id",value,role,"Email already registered for this role")
         return value
 
     def validate_dob(self, value):

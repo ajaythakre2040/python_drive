@@ -5,6 +5,7 @@ from rest_framework import status
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from ..models.mpin_history import UserMPINHistory
 from auth_system.models import User_security, User
 from auth_system.serializer import UserSecuritySerializer
 from auth_system.permission.authentication import LoginTokenAuthentication
@@ -84,10 +85,18 @@ class UserSecurityAPIView(APIView):
                 )
 
             # ✅ Save MPIN
-            security.mpin_hash = make_password(mpin)
+            hashed_mpin = make_password(mpin)
+            security.mpin_hash = hashed_mpin
             security.is_mpin_enabled = True
+            security.save()
 
-        security.save()
+            UserMPINHistory.objects.create(
+                user=user,
+                mpin=hashed_mpin,
+                created_by=request.user,
+                updated_by=request.user
+            )
+            
         return Response(
             {"status": True, "message": "User security saved successfully"},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK

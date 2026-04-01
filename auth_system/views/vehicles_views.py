@@ -90,7 +90,6 @@ class VehicleAPIView(APIView):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 #==========================================DELETE=================================================#
-
     def delete(self, request, id):
         if not request.user or not request.user.is_authenticated:
             return Response({"error": "You are logged out. Please login first"},status=status.HTTP_401_UNAUTHORIZED)
