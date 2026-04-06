@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from django.contrib.auth.hashers import make_password, check_password
+from ..utils.mpin_crypto import encrypt_mpin, decrypt_mpin
 
 class User_security(models.Model):
     user= models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
@@ -24,15 +24,16 @@ class User_security(models.Model):
     
     def __str__(self):
         return f"Security - {self.user.user_id}"
-
-    # ===== MPIN helpers =====
     def set_mpin(self, raw_mpin):
-        """MPIN set and hashed"""
-        self.mpin_hash = make_password(raw_mpin)
+        self.mpin_hash = encrypt_mpin(raw_mpin)
         self.save()
 
     def check_mpin(self, raw_mpin):
-        """Check MPIN against stored hash"""
         if not self.mpin_hash:
             return False
-        return check_password(raw_mpin, self.mpin_hash)
+        return decrypt_mpin(self.mpin_hash) == raw_mpin
+
+    def get_mpin(self):
+        if not self.mpin_hash:
+            return None
+        return decrypt_mpin(self.mpin_hash)

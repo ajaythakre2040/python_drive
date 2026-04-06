@@ -6,6 +6,7 @@ class UserMPINHistory(models.Model):
     mpin = models.CharField(max_length=128) 
 
     mpin_attempts = models.IntegerField(default=0)
+    is_blocked = models.BooleanField(default=False)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

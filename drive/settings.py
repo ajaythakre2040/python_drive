@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -29,7 +28,6 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 X_FRAME_OPTIONS = 'DENY'
-
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
@@ -51,7 +49,6 @@ REST_FRAMEWORK = {
 
     # 'EXCEPTION_HANDLER': 'data.utils.custom_exception.custom_exception_handler',
 }
-
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
@@ -108,8 +105,10 @@ WSGI_APPLICATION = 'drive.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-
 from decouple import config
+
+ENCRYPTION_KEY = config('ENCRYPTION_KEY', default='')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
