@@ -98,18 +98,22 @@ class LoginAPIView(APIView):
 
         # ----------------------------- PASSWORD LOGIN -----------------------------
         if password:
-            if user.login_attempts >= MAX_PASSWORD_ATTEMPTS:
-                return Response({"success": False, "message": "User blocked due to multiple wrong password attempts"},status=403)
+            is_valid = user.check_password(password)
+            if user.login_attempts >= MAX_PASSWORD_ATTEMPTS and not is_valid:
+                return Response({
+                    "sucesss":False,
+                    "message":"User blocked due to mutliple wrong password attempts"
+                },status=403)
+            
+            if is_valid:
+                user.login_attempts = 0
+                user.save()
+                login_method = "password"
 
-            if not user.check_password(password):
+            else:
                 user.login_attempts += 1
                 user.save()
-                return Response({"success": False, "message": "Incorrect password"},status=status.HTTP_400_BAD_REQUEST)
-
-            # ✅ Reset on success
-            user.login_attempts = 0
-            user.save()
-            login_method = "password"
+                return Response({"success": False, "message": "Incorrect password"}, status=400)         
 
         # ----------------------------- MPIN LOGIN -----------------------------
         elif mpin:
