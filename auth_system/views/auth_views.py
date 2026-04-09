@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from auth_system.models import User, Role, Password_History,User_security
+from auth_system.models import User, Role, Password_History,User_security,UserMPINHistory
 from auth_system.serializer.auth import (UserRegisterSerializer,ChangePasswordSerializer,ForgetPasswordSerializer)
 from auth_system.utils.token_generate import token_generate
 from auth_system.utils.generate_id import generate_user_id
@@ -53,15 +53,14 @@ class RegisterAPIView(APIView):
             "data": {"user_id": user.user_id}}, status=status.HTTP_201_CREATED)
 
 # =================================================== LOGIN ============================================================ #
-MAX_PASSWORD_ATTEMPTS = 3
-MAX_MPIN_ATTEMPTS = 3
-
+# =================================================== LOGIN ============================================================ #
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
     def post(self, request, role_name):
         data = request.data
+
         mobile = data.get("primary_mobile_number")
         email = data.get("email_id")
         password = data.get("password")
@@ -70,132 +69,147 @@ class LoginAPIView(APIView):
         facelock = data.get("facelock")
         user_id = data.get("user_id")
 
-        # ----------------------------- Validate login method -----------------------------
+        # ----------------------------- VALIDATION -----------------------------
         if not (password or mpin or fingerprint or facelock):
-            return Response({"success": False, "message": "At least one login method required"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "success": False,
+                "message": "At least one login method required"
+            }, status=400)
 
         if password and not (mobile or email):
-            return Response({"success": False, "message": "Mobile or Email required for password login"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "success": False,
+                "message": "Mobile or Email required for password login"
+            }, status=400)
 
-        # ----------------------------- Fetch user -----------------------------
+        # ----------------------------- GET USER -----------------------------
         user = None
         if user_id:
             user = User.all_objects.filter(user_id=user_id).first()
         elif mobile or email:
-            user = User.all_objects.filter(Q(primary_mobile_number=mobile) | Q(email_id__iexact=email)).first()
+            user = User.all_objects.filter(
+                Q(primary_mobile_number=mobile) |
+                Q(email_id__iexact=email)
+            ).first()
 
         if not user:
-            return Response({"success": False, "message": "User not found"},status=status.HTTP_403_FORBIDDEN)
+            return Response({"success": False, "message": "User not found"}, status=404)
 
-        # ----------------------------- Security & MPIN history -----------------------------
+        # ----------------------------- SECURITY -----------------------------
         security, _ = User_security.objects.get_or_create(user=user)
 
-        mpin_history = user.mpin_histories.order_by('-id').first()
+        mpin_history = UserMPINHistory.objects.filter(user=user).first()
         if not mpin_history:
-            mpin_history = UserMPINHistory.objects.create(user=user)
+            mpin_history = UserMPINHistory.objects.create(user=user, mpin_attempts=0, mpin_blocked=False)
+
+        password_history = Password_History.objects.filter(user=user).first()
+        if not password_history:
+            password_history = Password_History.objects.create(user=user, password=user.password, login_attempts=0)
 
         login_method = None
 
-        # ----------------------------- PASSWORD LOGIN -----------------------------
+        # ==========================================================
+        # 🔐 PASSWORD LOGIN
+        # ==========================================================
         if password:
             is_valid = user.check_password(password)
-            if user.login_attempts >= MAX_PASSWORD_ATTEMPTS and not is_valid:
-                return Response({
-                    "sucesss":False,
-                    "message":"User blocked due to mutliple wrong password attempts"
-                },status=403)
-            
+
             if is_valid:
-                user.login_attempts = 0
-                user.save()
+                # ✅ Correct password → reset attempts
+                password_history.login_attempts = 0
+                password_history.save()
                 login_method = "password"
-
             else:
-                user.login_attempts += 1
-                user.save()
-                return Response({"success": False, "message": "Incorrect password"}, status=400)         
-
-        # ----------------------------- MPIN LOGIN -----------------------------
-        elif mpin:
-
-            # Safety check
-            if not mpin_history:
-                return Response({"success": False,"message": "MPIN not set"}, status=400)
-
-            is_valid = security.check_mpin(mpin)
-
-            # ✅ अगर blocked है → only correct MPIN allow
-            if mpin_history.is_blocked and not is_valid:
+                # ❌ Wrong password → increment attempts
+                password_history.login_attempts += 1
+                if password_history.login_attempts >= 3:
+                    return Response({
+                        "success": False,
+                        "message": "Your account is blocked due to multiple incorrect password attempts. Please reset your password."
+                    }, status=403)
+                password_history.save()
                 return Response({
                     "success": False,
-                    "message": "User blocked due to multiple wrong MPIN attempts"
-                }, status=403)
+                    "message": f"Incorrect password."
+                }, status=400)
+
+        # ==========================================================
+        # 🔐 MPIN LOGIN
+        # ==========================================================
+        elif mpin:
+            is_valid = security.check_mpin(mpin)
 
             if is_valid:
+                # ✅ Correct MPIN → reset attempts
                 mpin_history.mpin_attempts = 0
-                mpin_history.is_blocked = False
+                mpin_history.mpin_blocked = False
                 mpin_history.last_attempt_at = timezone.now()
                 mpin_history.save()
-
                 login_method = "mpin"
-
             else:
+                # ❌ Wrong MPIN → increment attempts
                 mpin_history.mpin_attempts += 1
                 mpin_history.last_attempt_at = timezone.now()
-
-                # 🚫 Block after 3 attempts
-                if mpin_history.mpin_attempts >= MAX_MPIN_ATTEMPTS:
-                    mpin_history.is_blocked = True
-
+                if mpin_history.mpin_attempts >= 3:
+                    mpin_history.mpin_blocked = True
+                    mpin_history.save()
+                    return Response({
+                        "success": False,
+                        "message": "Your account is blocked due to multiple incorrect MPIN attempts. Please recover your MPIN."
+                    }, status=403)
                 mpin_history.save()
+                return Response({
+                    "success": False,
+                    "message": f"Incorrect MPIN"
+                }, status=400)
 
-                return Response({"success": False, "message": "Incorrect MPIN"}, status=400)
-
-        # ----------------------------- FINGERPRINT LOGIN -----------------------------
+        # ==========================================================
+        # 🔐 FINGERPRINT LOGIN
+        # ==========================================================
         elif fingerprint:
             if not security.is_fingerprint_enabled:
-                return Response(
-                    {"success": False, "message": "Fingerprint login disabled"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"success": False, "message": "Fingerprint login disabled"}, status=400)
             login_method = "fingerprint"
 
-        # ----------------------------- FACELOCK LOGIN -----------------------------
+        # ==========================================================
+        # 🔐 FACELOCK LOGIN
+        # ==========================================================
         elif facelock:
             if not security.is_face_lock_enabled:
-                return Response({"success": False, "message": "FaceLock login disabled"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"success": False, "message": "FaceLock login disabled"}, status=400)
             login_method = "facelock"
 
-        # ----------------------------- ROLE CHECK -----------------------------
-        role = Role.objects.filter(
-            name__iexact=role_name.strip(),
-            is_active=True
-        ).first()
-
+        # ==========================================================
+        # 🔐 ROLE CHECK
+        # ==========================================================
+        role = Role.objects.filter(name__iexact=role_name.strip(), is_active=True).first()
         if not role or user.role_id != role.id:
-            return Response({"success": False, "message": "Invalid role"},status=403)
+            return Response({"success": False, "message": "Invalid role"}, status=403)
 
-        # ----------------------------- ACTIVE SESSION CHECK -----------------------------
+        # ==========================================================
+        # 🔐 ACTIVE SESSION CHECK
+        # ==========================================================
         if not getattr(settings, "ALLOW_MULTIPLE_SESSIONS", False):
-            active_session = Login_Logout_History.objects.filter(
-                user=user,
-                logout_time__isnull=True
-            ).first()
-
+            active_session = Login_Logout_History.objects.filter(user=user, logout_time__isnull=True).first()
             if active_session:
                 if timezone.now() < active_session.expires_at:
-                    return Response({"success": False, "message": "Already logged in"},status=status.HTTP_403_FORBIDDEN)
-                
+                    return Response({"success": False, "message": "Already logged in"}, status=403)
                 else:
                     active_session.logout_time = active_session.expires_at
                     active_session.is_active = False
                     active_session.save()
 
-        # ----------------------------- TOKEN GENERATE -----------------------------
+        # ==========================================================
+        # 🔐 TOKEN GENERATE
+        # ==========================================================
         try:
             tokens = token_generate(user, request)
         except IntegrityError:
-            return Response({"success": False, "message": "Token generation failed"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"success": False, "message": "Token generation failed"}, status=500)
 
-        # ----------------------------- SUCCESS RESPONSE -----------------------------#
+        # ==========================================================
+        # ✅ SUCCESS
+        # ==========================================================
         return Response({
             "success": True,
             "message": "Login successful",
@@ -205,7 +219,6 @@ class LoginAPIView(APIView):
                 "login_method": login_method
             }
         }, status=200)
-    
 # =========================================== LOGOUT ============================================ #
 class LogoutAPIView(APIView):
     permission_classes=[IsAuthenticated]
@@ -343,65 +356,94 @@ class ForgetPasswordAPIView(APIView):
         email = serializer.validated_data.get("email_id")
         new_password = serializer.validated_data.get("new_password")
 
+        # -------------------- Validation --------------------
         if not mobile and not email:
-            return Response({"success": False, "message": "primary_mobile_number or email_id required"}, status=400)
+            return Response({
+                "success": False,
+                "message": "Primary mobile number or email is required."
+            }, status=400)
 
-        # ✅ Step 1: Get user first
-        try:
-            user = User.all_objects.get(Q(primary_mobile_number=mobile) | Q(email_id=email), is_active=True)
-        except User.DoesNotExist:
-            return Response({"success": False, "message": "User not found"}, status=404)
+        # -------------------- Get User --------------------
+        user = User.all_objects.filter(
+            Q(primary_mobile_number=mobile) | Q(email_id=email),
+            is_active=True
+        ).first()
+        if not user:
+            return Response({
+                "success": False,
+                "message": "User not found."
+            }, status=404)
 
-        # ✅ Step 2: Check if user is blocked due to MPIN attempts
-        try:
-            security = User_security.objects.get(user=user, deleted_at__isnull=True)
-            mpin_history = UserMPINHistory.objects.filter(user=user).first()  
-            if mpin_history and is_user_blocked(mpin_history):
-                # Blocked → send old MPIN
-                old_mpin = decrypt_mpin(security.mpin_hash) if security.mpin_hash else None
+        # -------------------- Get Security and MPIN History --------------------
+        security, _ = User_security.objects.get_or_create(user=user)
 
-                if old_mpin:
-                    if mobile:
-                        send_sms(mobile, f"Your old MPIN is: {old_mpin}")
+        # Use filter().first() to avoid MultipleObjectsReturned
+        mpin_history = UserMPINHistory.objects.filter(user=user).first()
+        if not mpin_history:
+            mpin_history = UserMPINHistory.objects.create(user=user)
 
-                    if email:
-                        send_email(email, "Old MPIN Recovery", f"Your old MPIN is: {old_mpin}")
+        # -------------------- Check MPIN block --------------------
+        if mpin_history.mpin_blocked:
+            old_mpin = decrypt_mpin(security.mpin_hash) if security.mpin_hash else None
+            if old_mpin:
+                if mobile:
+                    send_sms(mobile, f"Your old MPIN is: {old_mpin}")
+                if email:
+                    send_email(email, "Old MPIN Recovery", f"Your old MPIN is: {old_mpin}")
 
-                return Response({"success": True, "message": "User is blocked. Old MPIN sent via registered contact"}, status=200)
-        except User_security.DoesNotExist:
-            pass
+            return Response({
+                "success": True,
+                "message": "Your account is blocked due to multiple incorrect MPIN attempts. Old MPIN has been sent to your registered contact."
+            }, status=200)
 
-        # ✅ Step 3: Unblocked user → require new_password
+        # -------------------- Require new password only if MPIN not blocked --------------------
         if not new_password:
-            return Response({"success": False, "message": "new password is required"}, status=400)
+            return Response({
+                "success": False,
+                "message": "New password is required to reset."
+            }, status=400)
 
-        # Password validation
+        # -------------------- Validate new password --------------------
         try:
             validate_custom_password(new_password)
         except Exception as e:
-            return Response({"success": False, "message": str(e)}, status=400)
+            return Response({
+                "success": False,
+                "message": str(e)
+            }, status=400)
 
-        # Password reuse check
+        # -------------------- Prevent password reuse --------------------
         if is_password_reused(user, new_password):
-            return Response({"success": False, "message": "New password cannot match last 3 passwords"}, status=400)
+            return Response({
+                "success": False,
+                "message": "New password cannot match your last 3 passwords."
+            }, status=400)
 
-        # Save old password history
+        # -------------------- Save old password --------------------
         if user.password:
             Password_History.objects.create(user=user, password=user.password)
 
-        # Set new password
+        # -------------------- Set new password --------------------
         user.set_password(new_password)
         user.save()
 
-        # Log action
+        # -------------------- Reset MPIN/Password block flags --------------------
+        mpin_history.mpin_blocked = False
+        mpin_history.mpin_attempts = 0
+        mpin_history.save()
+
+        # -------------------- Log action --------------------
         try:
             Password_Action_Log.objects.create(user=user, action_by=None, action_type="reset")
         except Exception:
             pass
 
-        # Keep only last 3 passwords
+        # -------------------- Keep only last 3 passwords --------------------
         last_ids = Password_History.objects.filter(user=user).order_by('-id')[3:].values_list('id', flat=True)
         if last_ids:
             Password_History.objects.filter(id__in=last_ids).delete()
 
-        return Response({"success": True, "message": "Password reset successfully"}, status=200)
+        return Response({
+            "success": True,
+            "message": "Password has been reset successfully. You can now login with your new password."
+        }, status=200)

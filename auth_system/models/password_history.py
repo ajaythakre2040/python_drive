@@ -4,6 +4,8 @@ from django.db import models
 class Password_History(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='password_histories')
     password = models.CharField(max_length=128)
+    login_attempts = models.IntegerField(default=0)
+    is_password_blocked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
