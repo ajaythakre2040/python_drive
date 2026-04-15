@@ -12,7 +12,7 @@ from auth_system.permission.authentication import LoginTokenAuthentication
 from ..utils.pagination import CustomPagination
 from ..utils.sanitize import no_html_validator
 from ..utils.mpin_validation import validate_mpin
-
+ 
 class UserSecurityAPIView(APIView):
     authentication_classes = [LoginTokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -26,9 +26,11 @@ class UserSecurityAPIView(APIView):
                 user = User.objects.get(user_id=user_id)
                 security = User_security.objects.get(user=user, deleted_at__isnull=True)
                 serializer = UserSecuritySerializer(security)
+
                 return Response({"status": True, "data": serializer.data}, status=status.HTTP_200_OK)
             except User.DoesNotExist:
                 return Response({"status": False, "message": "Invalid user_id"}, status=status.HTTP_404_NOT_FOUND)
+            
             except User_security.DoesNotExist:
                 return Response({"status": False, "message": "User security not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -66,17 +68,11 @@ class UserSecurityAPIView(APIView):
             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # Get or create User_security AFTER MPIN validation
-        security, created = User_security.objects.get_or_create(
-            user=user,
-            defaults={"created_by": request.user}
-        )
+        security, created = User_security.objects.get_or_create(user=user,defaults={"created_by": request.user})
 
         # Check if MPIN is already set
         if security.mpin_hash not in [None, ""]:
-            return Response(
-                {"status": False, "message": "MPIN already set. You cannot set it again."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"status": False, "message": "MPIN already set. You cannot set it again."},status=status.HTTP_400_BAD_REQUEST)
 
         # Encrypt and save MPIN
         hashed_mpin = encrypt_mpin(mpin)
@@ -87,22 +83,16 @@ class UserSecurityAPIView(APIView):
 
         # Update MPIN history
         mpin_history = UserMPINHistory.objects.filter(user=user).first()
+        
         if not mpin_history:
-            mpin_history = UserMPINHistory(
-                user=user,
-                mpin=hashed_mpin,
-                created_by=request.user,
-                updated_by=request.user
-            )
+            mpin_history = UserMPINHistory(user=user,mpin=hashed_mpin,created_by=request.user,updated_by=request.user)
+
         else:
             mpin_history.mpin = hashed_mpin
             mpin_history.updated_by = request.user
         mpin_history.save()
 
-        return Response(
-            {"status": True, "message": "User MPIN set successfully"},
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
-        )
+        return Response({"status": True, "message": "User MPIN set successfully"},status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     # ================= DELETE (SOFT DELETE) ================= #
     def delete(self, request, *args, **kwargs):
