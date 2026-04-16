@@ -5,3 +5,4 @@ from .OTPVerification import SendOTPSerializer,VerifyOTPSerializer,RESENDOTPSeri
 from .driver import DriverDocumentSerializer
 from .vehicles import VehicleSerializer
 from .unblock_user import UnblockUserSerializer
+from .forget_password_verfy import VerifyOTPAndForgetPasswordSerializer

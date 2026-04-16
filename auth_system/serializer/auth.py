@@ -107,4 +107,3 @@ class ChangePasswordSerializer(serializers.Serializer):
 class ForgetPasswordSerializer(serializers.Serializer):
     primary_mobile_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
     email_id = serializers.EmailField(required=False, allow_blank=True, write_only=True)
-    new_password = serializers.CharField(write_only=True, required=False)

@@ -7,6 +7,7 @@ from .vehicle_urls import urlpatterns as vehicle_urlpatterns
 from .driver_urls import urlpatterns as driver_urlpatterns
 from .forget_mpin import urlpatterns as forget_urlspatterns
 from .unblock_user import urlpatterns as unblock_urlspatterns
+from .otpverify_forgetpassword import urlpatterns as forget_password_urlspatterns
 
 urlpatterns = (
     auth_urlpatterns +
@@ -17,5 +18,6 @@ urlpatterns = (
     vehicle_urlpatterns+
     driver_urlpatterns+
     forget_urlspatterns+
-    unblock_urlspatterns  
+    unblock_urlspatterns+
+    forget_password_urlspatterns
 )
